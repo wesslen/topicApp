@@ -1,4 +1,4 @@
-Package: TopicApp 
+Package: topicApp 
 Title: A Shiny App to run Topic Models
 Version: 0.1.0
 Authors@R: person("Ryan", "Wesslen", email =  "rwesslen@gmail.com", role = c("aut", "cre"))
