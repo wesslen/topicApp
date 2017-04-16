@@ -1,6 +1,5 @@
 new.topic.network <- function(stmFit, threshold, topic.names){
   #mod.out.corr <- topicCorr(stmFit, method = "simple", cutoff = threshold)
-  
   cormat <- cor(stmFit$theta)
   adjmat <- ifelse(abs(cormat) > threshold,1,0)
   
@@ -35,12 +34,14 @@ new.topic.network <- function(stmFit, threshold, topic.names){
   
   #means$color <- ifelse(means$means>0,means$colorDem,means$colorRep)
   
+  TopicProportions = colMeans(stmFit$theta)
+  
   #visNetwork edits
   nodes$shape <- "dot"  
   nodes$shadow <- TRUE # Nodes will drop shadow
   nodes$title <- topic.names # Text on click
   nodes$label <- topic.names # Node label
-  #nodes$size <- (topic$TopicProportions / max(topic$TopicProportions)) * 40 # Node size
+  nodes$size <- (TopicProportions / max(TopicProportions)) * 40 # Node size
   nodes$borderWidth <- 2 # Node border width
   
   nodes$color.background <- col

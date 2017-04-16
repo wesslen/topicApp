@@ -64,7 +64,13 @@ body <-   dashboardBody(
                                        "Single Quote" = "'"),
                                      inline = TRUE,
                                      "\"")
-                    )
+                    ),
+                  hr(),
+                      directoryInput('load.directory', label = 'Or load a previous model (then move to Step 4)', value = '~'),
+                      bsTooltip("load.directory", "Select the directory to load a model.",
+                                "left", options = list(container = "body")),
+                      actionButton("load.model","Load Model")
+                  
                   ),
               box(title = "Step 2: Pre-processing",
                   selectInput("tpDocs",
@@ -188,10 +194,8 @@ body <-   dashboardBody(
                 )
               )
             )
-    
     )
 )
-
 
 ############### Dashboard page ####################
 
@@ -205,17 +209,25 @@ server <- function(input, output, session) {
   storedData <- reactiveValues()
   
   storedData$data <- NULL
-  # storedData$textprocess <- NULL
-  # storedData$prepdocs <- NULL
-  # storedData$stmresult <- NULL
-  # storedData$stmformula <- NULL
-  # storedData$esteffect <- NULL
-  # 
-  # storedData$summaryPlotArgs <- NULL
-  # storedData$labelsPlotArgs <- NULL
-  # storedData$perspectivesPlotArgs <- NULL
-  # storedData$histPlotArgs <- NULL
-  # storedData$estEffPlotArgs <- NULL
+
+  observeEvent(
+    ignoreNULL = TRUE,
+    eventExpr = {
+      input$load.directory
+    },
+    handlerExpr = {
+      if (input$load.directory > 0) {
+        # condition prevents handler execution on initial app launch
+        
+        path = choose.dir(default = readDirectoryInput(session, 'load.directory'))
+        updateDirectoryInput(session, 'load.directory', value = path)
+      }
+    }
+  )
+  
+  output$directory = renderText({
+    readDirectoryInput(session, 'load.directory')
+  })
   
   observeEvent(
     ignoreNULL = TRUE,
@@ -235,10 +247,6 @@ server <- function(input, output, session) {
   output$directory = renderText({
     readDirectoryInput(session, 'directory')
   })
-  
-
-  
-  
   
   shinyjs::onclick("toggleAdvDataUpload",
                    shinyjs::toggle(id = "advUploadOptions",
@@ -302,18 +310,13 @@ server <- function(input, output, session) {
     }
   })
   
-  
     # Topic
   z <- reactiveValues(Corpus = NULL, dtm = NULL, dfm = NULL)
 
   observeEvent(input$dfm.update, {
-    
     MyCorpus <- corpus(as.character(storedData$data[,input$tpDocs]))
-    #docvars(MyCorpus, "Company") <- data$Company
-    
     stp <- unlist(strsplit(input$stopwords,","))
     stp <- trimws(stp)
-    
     ngram <- ifelse(input$ngrams==1,1L, 1L:2L)
     
     Dfm <- dfm(MyCorpus, remove = c(stopwords("english"), stp), removeNumbers = TRUE, removePunct = TRUE,
@@ -330,27 +333,7 @@ server <- function(input, output, session) {
     print("DFM created")
   })
   
-  
   v <- reactiveValues(probtopics = NULL, probterms = NULL, topicnames = NULL, stmFit = NULL, out = NULL)
-  
-  observeEvent(input$load.model, {
-    v$probterms <- read.csv(file = "./prob-terms.csv", stringsAsFactors = F, row.names = 1)
-    v$probdocs <- read.csv(file = "./prob-docs.csv", stringsAsFactors = F, row.names = 1)
-    v$stmFit <- load("stmFit.RData")
-    #v$topicnames <- read.csv(file = "./topic-names.csv", stringsAsFactors = F)
-    
-    topic.names <- character(length = ncol(v$probterms))
-    
-    for (i in 1:ncol(v$probterms)){
-      temp <- order(-v$probterms[,i])
-      temp2 <- rownames(v$probterms[temp,])
-      topic.names[i] <- paste(temp2[1:5], collapse = " \n ")
-    }
-    
-    v$topicnames <- topic.names
-    
-    print("Model CSV Uploaded!")
-  })
   
   # topic models
   
@@ -384,7 +367,7 @@ server <- function(input, output, session) {
 
   # Network
   x <- reactiveValues(nodes = NULL, edges = NULL)
-  
+
   observeEvent(input$network.update, {
    results <- new.topic.network(v$stmFit, input$parm, v$topicnames)
    x$nodes <- results[[1]]
@@ -392,7 +375,27 @@ server <- function(input, output, session) {
    print("Network created")
   })
   
+  # load and save
   
+  observeEvent(input$load.model, {
+    dir <- readDirectoryInput(session, 'load.directory')
+    v$probterms <- read.csv(file = paste0(dir,"/prob-terms.csv"), stringsAsFactors = F, row.names = 1)
+    v$probdocs <- read.csv(file = paste0(dir,"/prob-docs.csv"), stringsAsFactors = F, row.names = 1)
+    load(paste0(dir,"/stmFit.RData"))
+    v$stmFit <- stmFit
+    load(paste0(dir,"/out.RData"))
+    v$out <- out
+
+    topic.names <- character(length = ncol(v$probterms))
+    for (i in 1:ncol(v$probterms)){
+      temp <- order(-v$probterms[,i])
+      temp2 <- rownames(v$probterms[temp,])
+      topic.names[i] <- paste(temp2[1:5], collapse = " \n ")
+    }
+    v$topicnames <- topic.names
+    
+    print("Model Uploaded!")
+  })
 
   observeEvent(input$save.results, {
 
@@ -471,8 +474,6 @@ server <- function(input, output, session) {
     temp
   }, options = list(pageLength = 5, dom = 'tip') , rownames= FALSE)
   
-  
-  
   valid <- reactiveValues(results = NULL, K = NULL)
   
   # Validation
@@ -487,7 +488,13 @@ server <- function(input, output, session) {
     # use quanteda converter to convert our Dfm
     out <- prepDocuments(dfm$documents, dfm$vocab, dfm$meta, lower.thresh = 1, subsample = NULL)
     
-    valid$results <- searchK(out$documents, out$vocab, K, init.type = "Spectral", proportion = 0.5, heldout.seed = input$search.seed)
+    valid$results <- searchK(out$documents, 
+                             out$vocab, 
+                             K, 
+                             init.type = "Spectral", 
+                             proportion = 0.5, 
+                             heldout.seed = input$search.seed, 
+                             max.em.its = 200)
     valid$K <- K
     })
   
