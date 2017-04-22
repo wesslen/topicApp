@@ -1,9 +1,9 @@
 
 #packages
-packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","treemap","visNetwork",
+packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","treemap","visNetwork","d3wordcloud",
               "igraph","wordcloud","scatterD3","reshape","grid","tidyverse","shinyjs","shinyBS","stm")
 
-#for (i in packages){install.packages(i)}
+#for (i in packages){install.packages(i)}, devtools::install_github("jbkunst/d3wordcloud")
 
 lapply(packages,library,character.only = TRUE)
 source('directoryInput.R')
@@ -11,7 +11,8 @@ source('functions.R')
 
 #source("./inst/app/functions.R")
 
-exp.stop <- c("also")
+# put stop words to start with here
+exp.stop <- c()
 
 ###################################################
 ##############       UI       #####################
@@ -19,7 +20,7 @@ exp.stop <- c("also")
 
 ############### Header content ####################
 
-header <- dashboardHeader(title = "Shiny Topic Model")
+header <- dashboardHeader(title = "topicApp")
 
 ############### Sidebar content ###################
 
@@ -76,10 +77,11 @@ body <-   dashboardBody(
                   selectInput("tpDocs",
                               "Select Text Column",
                               c()),
-                  bsTooltip("tpDocs", "Select which column contains the vector of text.",
+                  bsTooltip("tpDocs", "Select which column contains the column of text.",
                             "left", options = list(container = "body")),
                   textInput("stopwords", label = "Stop Words", 
-                            value = paste(exp.stop, collapse = ", ")),
+                            value = paste(exp.stop, collapse = ", "),
+                            placeholder = "also, such, really..."),
                   bsTooltip("stopwords", "Include additional stop words to remove:",
                             "left", options = list(container = "body")),
                   sliderInput("minDoc",
@@ -133,41 +135,41 @@ body <-   dashboardBody(
     # Topics Tab
     tabItem(tabName = "topics",
             fluidRow(
+              #actionButton("tabBut", "View Topic"),
               box(title = "Topic Network", 
-                  visNetworkOutput("topic.network", height = "800px"), width = 12, collapsible = T)
-                    ),
+                  visNetworkOutput("topic.network", height = "400px"), width = 12, collapsible = F)
+              ),
+             fluidRow(
+               box(title = "Topic Word Cloud: Size Proportional to Word Probability", 
+                   d3wordcloudOutput("topic.wordcloud", height = "200px"), width = 12
+                   )
+               ),
             fluidRow(
-              box(title = "Topic Word Cloud", 
-                  plotOutput("topic.wordcloud"),
-                  sliderInput("max.words",
-                              "Maximum Number of Words:",
-                              min = 20,  max = 200,  value = 100, step = 20)),
               box(title = "Representative Documents",
-                  dataTableOutput("doc.table")
-                  #scatterD3Output("company.plot", height = "450px"),
+                  dataTableOutput("doc.table"), width = 12
                   )
                 )
             )
     ,
-    # Company Tab 
-    tabItem(tabName = "companies",
-            fluidRow(
-              box(
-                title = "Company Attributes",
-                #selectInput("company", "Choose a company:", choices = cmpyData$Company),
-                dataTableOutput("company.attribute"),
-                height = 400),
-              box(
-                title = "Company Topics", 
-                plotOutput("company.treemap")),
-              height = 400,
-              collapsible = T
-            )
-            ,
-            fluidRow(    
-              box(title = "Company's Webpages", dataTableOutput("company.webpage"), width = 12, collapsible = T)
-            )
-    ),
+    # # Document Tab 
+    # tabItem(tabName = "document",
+    #         fluidRow(
+    #           box(
+    #             title = "Document Attributes",
+    #             #selectInput("document", "Choose a document:", choices = cmpyData$Company),
+    #             dataTableOutput("doc.attribute"),
+    #             height = 400),
+    #           box(
+    #             title = "Document Topics", 
+    #             plotOutput("doc.treemap")),
+    #           height = 400,
+    #           collapsible = T
+    #         )
+    #         ,
+    #         fluidRow(    
+    #           box(title = "Document's Webpages", dataTableOutput("company.webpage"), width = 12, collapsible = T)
+    #         )
+    # ),
     # Validation tab
     tabItem(tabName = "validation",
             fluidRow(
@@ -210,6 +212,8 @@ server <- function(input, output, session) {
   
   storedData$data <- NULL
 
+  # load previous model
+  
   observeEvent(
     ignoreNULL = TRUE,
     eventExpr = {
@@ -229,6 +233,8 @@ server <- function(input, output, session) {
     readDirectoryInput(session, 'load.directory')
   })
   
+  # save model
+  
   observeEvent(
     ignoreNULL = TRUE,
     eventExpr = {
@@ -247,6 +253,8 @@ server <- function(input, output, session) {
   output$directory = renderText({
     readDirectoryInput(session, 'directory')
   })
+  
+  # shinyjs below was from stmGUI: https://github.com/dzangri/stmGUI
   
   shinyjs::onclick("toggleAdvDataUpload",
                    shinyjs::toggle(id = "advUploadOptions",
@@ -275,6 +283,7 @@ server <- function(input, output, session) {
       
       tryCatch({
         storedData$data <- do.call(read.csv, readDataArgs)
+        storedData$data$rowNum <- 1:nrow(storedData$data)
       }, error = function(e) {
         funName <- deparse(substitute(read.csv))
         shinyjs::html("dataInputTextResult",
@@ -315,6 +324,9 @@ server <- function(input, output, session) {
 
   observeEvent(input$dfm.update, {
     MyCorpus <- corpus(as.character(storedData$data[,input$tpDocs]))
+    
+    # sets input data row number as primary key -- ensures matchback for datasets without a primary key
+    docvars(MyCorpus, "rowNum") <- storedData$data$rowNum
     stp <- unlist(strsplit(input$stopwords,","))
     stp <- trimws(stp)
     ngram <- ifelse(input$ngrams==1,1L, 1L:2L)
@@ -327,8 +339,8 @@ server <- function(input, output, session) {
 
     # we now export to a format that we can run the topic model with
     z$Corpus <- MyCorpus
-    z$dtm <- convert(tdfm, to="topicmodels")
-    z$dfm <- convert(tdfm, to = "stm") #, docvars = docvars(myCorpus))
+    z$dtm <- convert(tdfm, to= "topicmodels")
+    z$dfm <- convert(tdfm, to = "stm", docvars = docvars(MyCorpus))
     
     print("DFM created")
   })
@@ -426,9 +438,12 @@ server <- function(input, output, session) {
     print("Topic model saved")
   })
   
+  ### Network
+  
   output$topic.network <- renderVisNetwork({
 
-    visNetwork(x$nodes, x$edges, height = "1200px") %>%
+    visNetwork(x$nodes, x$edges, submain = "A topic is a word list of word co-occurrence clusters. Each node is a topic and each edge represents shared words between clusters.", height = "600px") %>%
+      #visExport() %>%
       visNodes(labelHighlightBold = T) %>%
       visOptions(highlightNearest = T, selectedBy = "community", nodesIdSelection = T) %>%
       visInteraction(navigationButtons = T)
@@ -443,33 +458,75 @@ server <- function(input, output, session) {
   docs <- reactive({
     freq <- data.frame(v$probdocs)
     temp <- as.integer(input$topic.network_selected)
-    data.frame(docname = rownames(v$probdocs), freq = freq[,temp])
+    data.frame(docname = rownames(v$probdocs), freq = freq[,temp], rowNum = v$out$meta$rowNum)
   })
   
   # Make the wordcloud drawing predictable during a session
-  wordcloud_rep <- repeatable(wordcloud)
-  
-  output$topic.wordcloud <- renderPlot({
-    w <- terms()
-    wordcloud_rep(w$word, exp(w$freq), scale=c(4,0.5),
-                  max.words=input$max.words,random.order = F, rot.per=0.1,
-                  colors=brewer.pal(8, "Dark2"))
-    })
+  # wordcloud_rep <- repeatable(wordcloud)
+  # 
+  # output$topic.wordcloud <- renderPlot({
+  #   w <- terms()
+  # 
+  #   try <- try(wordcloud_rep(w$word, 
+  #                            exp(w$freq), 
+  #                            scale=c(4,0.5),
+  #                            max.words=100,
+  #                            random.order = F, 
+  #                            rot.per=0.1,
+  #                            colors=brewer.pal(8, "Dark2")))
+  #   if("try-error" %in% class(try)){print("Choose a topic from the network.")
+  #   }else{wordcloud_rep(w$word, 
+  #                       exp(w$freq), 
+  #                       scale=c(4,0.5),
+  #                       max.words=50,
+  #                       random.order = F, 
+  #                       rot.per=0.1,
+  #                       colors=brewer.pal(8, "Dark2"))}
+  #   })
 
+  #### test for new word cloud
+  wordcloud_rep <- repeatable(d3wordcloud)
+  
+  output$topic.wordcloud <- renderD3wordcloud({
+   d3wordcloud(c(" "),1)
+   w <- terms()
+   
+   w$freq <- exp(w$freq)
+   w <- w[order(desc(w$freq)),]
+   
+   # take top 100
+   w <- w[1:100,]
+   wordcloud_rep(c(" "),1)
+   
+   x <- wordcloud_rep(w$word,
+                 w$freq,
+                 size.scale = "linear",
+                 color.scale = "linear",
+                 rotate.max = 0,
+                 rotate.min = 0,
+                 height = "200px"
+   )
+   
+   try <- try(x)
+   if("try-error" %in% class(try)){print("Choose a topic from the network.")}else{x}
+   
+  })
+
+  
   # expert table
   Docs <- reactive({
     d <- docs()
-    ldaProbs <- data.frame(ID = as.integer(row.names(d)), Prob = exp(d$freq), stringsAsFactors = F)
-    ldaProbs <- merge(ldaProbs, storedData$data, by = "ID")
-    ldaProbs[order(ldaProbs$Prob, decreasing = T),]
+    ldaProbs <- data.frame(rowNum = d$rowNum, Prob = exp(d$freq), stringsAsFactors = F)
+    ldaProbs <- merge(ldaProbs, storedData$data, by = "rowNum")
+    ldaProbs[order(ldaProbs$Prob, decreasing = T), c("rowNum","Prob",input$tpDocs)]
   })
   
   #Representative Document
   
   output$doc.table <- renderDataTable({
     temp <- Docs()
-    colnames(temp) <- c("ID","% Topic","Text")
-    temp$`% Topic` <- round(temp$`% Topic`,3)
+    colnames(temp) <- c("Row Num","Log Topic Prob","Text")
+    temp[,2] <- round(temp[,2],3)
     temp$Text <- as.character(temp$Text)
     temp
   }, options = list(pageLength = 5, dom = 'tip') , rownames= FALSE)
@@ -499,7 +556,9 @@ server <- function(input, output, session) {
     })
   
   output$valid.plot <- renderPlot({
-    plot(valid$results)
+    try <- try(plot(valid$results))
+    if("try-error" %in% class(try)){print("Select the number of topics to test and run topic validation.")
+    }else{plot(valid$results)}
   })
 }
 

@@ -24,16 +24,6 @@ new.topic.network <- function(stmFit, threshold, topic.names){
   links <- igraph::as_data_frame(net2, what="edges")
   nodes <- igraph::as_data_frame(net2, what="vertices")
 
-  #means <- as.data.frame(unlist(STMresults$means))
-  #colnames(means) <- "means"
-  #color <- colorRamp(c("white","blue"))(abs(means$means)/0.05)
-  #means$colorDem <- rgb(color[,1],color[,2],color[,3],  maxColorValue=255)
-  
-  #color <- colorRamp(c("white","red"))(abs(means$means)/0.05)
-  #means$colorRep <- rgb(color[,1],color[,2],color[,3],  maxColorValue=255)
-  
-  #means$color <- ifelse(means$means>0,means$colorDem,means$colorRep)
-  
   TopicProportions = colMeans(stmFit$theta)
   
   #visNetwork edits
