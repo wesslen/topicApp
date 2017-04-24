@@ -6,6 +6,7 @@ To install and the run the app, open R/R Studio and run the following code:
 
 ```{r}
 install.packages("devtools")
+devtools::install_github("jbkunst/d3wordcloud") #non CRAN dependency
 devtools::install_github("wesslen/topicApp")
 topicApp::runApp()
 ```

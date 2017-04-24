@@ -331,7 +331,7 @@ server <- function(input, output, session) {
     stp <- trimws(stp)
     ngram <- ifelse(input$ngrams==1,1L, 1L:2L)
     
-    Dfm <- dfm(MyCorpus, remove = c(stopwords("english"), stp), removeNumbers = TRUE, removePunct = TRUE,
+    Dfm <- dfm(MyCorpus, remove = c(stopwords("english"), stp), remove_numbers = TRUE, remove_punct = TRUE,
                   stem = input$stemming, ngrams = ngram
                )
   
@@ -488,15 +488,16 @@ server <- function(input, output, session) {
   wordcloud_rep <- repeatable(d3wordcloud)
   
   output$topic.wordcloud <- renderD3wordcloud({
-   d3wordcloud(c(" "),1)
+   #wordcloud_rep(c(" "),1)
    w <- terms()
    
+   x <- NULL
    w$freq <- exp(w$freq)
    w <- w[order(desc(w$freq)),]
    
    # take top 100
    w <- w[1:100,]
-   wordcloud_rep(c(" "),1)
+   #wordcloud_rep(c(" "),1)
    
    x <- wordcloud_rep(w$word,
                  w$freq,
@@ -504,11 +505,13 @@ server <- function(input, output, session) {
                  color.scale = "linear",
                  rotate.max = 0,
                  rotate.min = 0,
-                 height = "200px"
+                 height = "200px",
+                 spiral = "rectangular"
    )
    
-   try <- try(x)
-   if("try-error" %in% class(try)){print("Choose a topic from the network.")}else{x}
+   x
+   # try <- try(x)
+   # if("try-error" %in% class(try)){print("Choose a topic from the network.")}else{x}
    
   })
 
@@ -525,8 +528,8 @@ server <- function(input, output, session) {
   
   output$doc.table <- renderDataTable({
     temp <- Docs()
-    colnames(temp) <- c("Row Num","Log Topic Prob","Text")
-    temp[,2] <- round(temp[,2],3)
+    colnames(temp) <- c("Row Num","Topic Prob","Text")
+    temp[,2] <- round(log(temp[,2]),3)
     temp$Text <- as.character(temp$Text)
     temp
   }, options = list(pageLength = 5, dom = 'tip') , rownames= FALSE)
