@@ -1,5 +1,20 @@
 # topicApp: A Simple Shiny App for Topic Modeling
 
+## Prerequisites for Windows users
+
+Typically, R packages will automatically install dependent CRAN packages via the `install_github` function from `devtools`. However, for Windows (R >= 3.3.0), this function does not work.
+
+Therefore, if you're running Windows, please run the following code to ensure you have the dependent packages before running the next step.
+
+This may take a few minutes but you only need to run once.
+
+```{r}
+packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","visNetwork",
+              "igraph","wordcloud","scatterD3","reshape","grid","tidyverse","shinyjs","shinyBS","stm")
+
+install.packages(packages)
+```
+
 ## Download and Running
 
 To install and the run the app, open R/R Studio and run the following code:
