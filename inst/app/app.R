@@ -86,7 +86,7 @@ body <-   dashboardBody(
                             "left", options = list(container = "body")),
                   sliderInput("minDoc",
                               "Minimum # of Documents (for Terms):",
-                              min = 0,  max = 100,  value = 10, step = 5),
+                              min = 0,  max = 100,  value = 10, step = 1),
                   bsTooltip("minDoc", "Remove sparse terms:",
                             "left", options = list(container = "body")),
                   box(checkboxInput("stemming", label = "Stemming", value = FALSE),
@@ -100,7 +100,7 @@ body <-   dashboardBody(
                   column(1.5,
                     sliderInput("num.topics",
                                 "Number of Topics:",
-                                min = 0,  max = 100,  value = 10, step = 5),
+                                min = 0,  max = 100,  value = 10, step = 1),
                     bsTooltip("num.topics", "Set to zero to auto-detect topics.",
                               "left", options = list(container = "body"))),
                   column(1.5,
@@ -141,7 +141,9 @@ body <-   dashboardBody(
               ),
              fluidRow(
                box(title = "Topic Word Cloud: Size Proportional to Word Probability", 
-                   d3wordcloudOutput("topic.wordcloud", height = "200px"), width = 12
+                   #d3wordcloudOutput("topic.wordcloud", height = "200px"), 
+                   plotOutput("topic.wordcloud"),
+                   width = 12
                    )
                ),
             fluidRow(
@@ -462,58 +464,61 @@ server <- function(input, output, session) {
   })
   
   # Make the wordcloud drawing predictable during a session
-  # wordcloud_rep <- repeatable(wordcloud)
-  # 
-  # output$topic.wordcloud <- renderPlot({
-  #   w <- terms()
-  # 
-  #   try <- try(wordcloud_rep(w$word, 
-  #                            exp(w$freq), 
-  #                            scale=c(4,0.5),
-  #                            max.words=100,
-  #                            random.order = F, 
-  #                            rot.per=0.1,
-  #                            colors=brewer.pal(8, "Dark2")))
-  #   if("try-error" %in% class(try)){print("Choose a topic from the network.")
-  #   }else{wordcloud_rep(w$word, 
-  #                       exp(w$freq), 
-  #                       scale=c(4,0.5),
-  #                       max.words=50,
-  #                       random.order = F, 
-  #                       rot.per=0.1,
-  #                       colors=brewer.pal(8, "Dark2"))}
-  #   })
+  wordcloud_rep <- repeatable(wordcloud)
+
+  output$topic.wordcloud <- renderPlot({
+    w <- terms()
+
+    try <- try(wordcloud_rep(w$word,
+                             exp(w$freq),
+                             scale=c(4,0.5),
+                             max.words=100,
+                             random.order = F,
+                             rot.per=0.1,
+                             colors=brewer.pal(8, "Dark2")))
+    if("try-error" %in% class(try)){print("Choose a topic from the network.")
+    }else{wordcloud_rep(w$word,
+                        exp(w$freq),
+                        scale=c(4,0.5),
+                        max.words=50,
+                        random.order = F,
+                        rot.per=0.1,
+                        colors=brewer.pal(8, "Dark2"))}
+    })
 
   #### test for new word cloud
-  wordcloud_rep <- repeatable(d3wordcloud)
-  
-  output$topic.wordcloud <- renderD3wordcloud({
-   #wordcloud_rep(c(" "),1)
-   w <- terms()
-   
-   x <- NULL
-   w$freq <- exp(w$freq)
-   w <- w[order(desc(w$freq)),]
-   
-   # take top 100
-   w <- w[1:100,]
-   #wordcloud_rep(c(" "),1)
-   
-   x <- wordcloud_rep(w$word,
-                 w$freq,
-                 size.scale = "linear",
-                 color.scale = "linear",
-                 rotate.max = 0,
-                 rotate.min = 0,
-                 height = "200px",
-                 spiral = "rectangular"
-   )
-   
-   x
-   # try <- try(x)
-   # if("try-error" %in% class(try)){print("Choose a topic from the network.")}else{x}
-   
-  })
+  # wordcloud_rep <- repeatable(d3wordcloud)
+  # #rm(output$topic.wordcloud)
+  # output$topic.wordcloud <- renderD3wordcloud({
+  #  #wordcloud_rep(c(" "),1)
+  #  w <- terms()
+  #  
+  #  # reweight
+  #  w$freq <- exp(w$freq)
+  #  w <- w[order(desc(w$freq)),]
+  #  
+  #  # take top 100
+  #  w <- w[1:100,]
+  #  #wordcloud_rep(c(" "),1)
+  #  
+  #  runjs("$('#wordcloud svg g').empty()") 
+  #  
+  #  x <- NULL
+  #  x <- d3wordcloud(w$word,
+  #                w$freq,
+  #                size.scale = "linear",
+  #                color.scale = "linear",
+  #                rotate.max = 0,
+  #                rotate.min = 0,
+  #                height = "200px",
+  #                spiral = "rectangular"
+  #  )
+  #  
+  #  x
+  #  # try <- try(x)
+  #  # if("try-error" %in% class(try)){print("Choose a topic from the network.")}else{x}
+  #  
+  # })
 
   
   # expert table
