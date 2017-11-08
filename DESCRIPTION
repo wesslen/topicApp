@@ -19,6 +19,6 @@ Imports:
     grid (>= 3.3.2), 
     tidyverse (>= 1.0.0),
     DT (>= 0.2),
-    treemap (>= 2.4-2),
-    scatterD3 (>= 0.8.1) 
+    scatterD3 (>= 0.8.1),
+    tm (>= 0.7-1)
 RoxygenNote: 6.0.1
