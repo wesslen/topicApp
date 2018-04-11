@@ -1,9 +1,7 @@
 
 #packages
-packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","treemap","visNetwork","d3wordcloud",
+packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","treemap","visNetwork",
               "igraph","wordcloud","scatterD3","reshape","grid","tidyverse","shinyjs","shinyBS","stm")
-
-#for (i in packages){install.packages(i)}, devtools::install_github("jbkunst/d3wordcloud")
 
 lapply(packages,library,character.only = TRUE)
 source('directoryInput.R')
@@ -141,7 +139,6 @@ body <-   dashboardBody(
               ),
              fluidRow(
                box(title = "Topic Word Cloud: Size Proportional to Word Probability", 
-                   #d3wordcloudOutput("topic.wordcloud", height = "200px"), 
                    plotOutput("topic.wordcloud"),
                    width = 12
                    )
@@ -485,40 +482,6 @@ server <- function(input, output, session) {
                         rot.per=0.1,
                         colors=brewer.pal(8, "Dark2"))}
     })
-
-  #### test for new word cloud
-  # wordcloud_rep <- repeatable(d3wordcloud)
-  # #rm(output$topic.wordcloud)
-  # output$topic.wordcloud <- renderD3wordcloud({
-  #  #wordcloud_rep(c(" "),1)
-  #  w <- terms()
-  #  
-  #  # reweight
-  #  w$freq <- exp(w$freq)
-  #  w <- w[order(desc(w$freq)),]
-  #  
-  #  # take top 100
-  #  w <- w[1:100,]
-  #  #wordcloud_rep(c(" "),1)
-  #  
-  #  runjs("$('#wordcloud svg g').empty()") 
-  #  
-  #  x <- NULL
-  #  x <- d3wordcloud(w$word,
-  #                w$freq,
-  #                size.scale = "linear",
-  #                color.scale = "linear",
-  #                rotate.max = 0,
-  #                rotate.min = 0,
-  #                height = "200px",
-  #                spiral = "rectangular"
-  #  )
-  #  
-  #  x
-  #  # try <- try(x)
-  #  # if("try-error" %in% class(try)){print("Choose a topic from the network.")}else{x}
-  #  
-  # })
 
   
   # expert table
