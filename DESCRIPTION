@@ -3,20 +3,20 @@ Title: A Shiny App to run Topic Models
 Version: 0.1.0
 Authors@R: person("Ryan", "Wesslen", email =  "rwesslen@gmail.com", role = c("aut", "cre"))
 Description: This package is a Shiny App to analyze text data (from flat file) using topic models (LDA).
-Depends: R (>= 3.2.0) 
+Depends: R (>= 3.2.0)
 License: GPL-2 
 LazyData: true
 Imports: 
-    shiny (>= 1.0.0), 
-    shinydashboard (>= 0.5.3), 
-    shinyBS (>= 0.61), 
-    shinyjs (>= 0.9), 
-    quanteda (>= 0.9.9-24), 
-    RColorBrewer (>= 1.1-2), 
-    visNetwork (>= 1.0.3), 
-    igraph (>= 1.0.1), 
-    reshape (>= 0.8.6), 
-    grid (>= 3.3.2), 
+    shiny (>= 1.0.0),
+    shinydashboard (>= 0.5.3),
+    shinyBS (>= 0.61),
+    shinyjs (>= 0.9),
+    quanteda (>= 0.9.9-24),
+    RColorBrewer (>= 1.1-2),
+    visNetwork (>= 1.0.3),
+    igraph (>= 1.0.1),
+    reshape (>= 0.8.6),
+    grid (>= 3.3.2),
     tidyverse (>= 1.0.0),
     DT (>= 0.2),
     tm (>= 0.7-1),

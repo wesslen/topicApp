@@ -13,8 +13,8 @@ Therefore, if you're running Windows, please run the following code to ensure yo
 This may take a few minutes but you only need to run once.
 
 ```{r}
-packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","visNetwork","tm",
-              "igraph","wordcloud","scatterD3","reshape","grid","tidyverse","shinyjs","shinyBS","stm")
+packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","visNetwork","ggwordcloud",
+              "igraph","tm","reshape","grid","tidyverse","shinyjs","shinyBS","stm")
 
 install.packages(packages)
 ```
