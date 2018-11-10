@@ -1,7 +1,7 @@
 
 #packages
-packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","treemap","visNetwork",
-              "igraph","wordcloud","scatterD3","reshape","grid","tidyverse","shinyjs","shinyBS","stm")
+packages <- c("shiny","quanteda","shinydashboard","RColorBrewer","DT","visNetwork","ggwordcloud",
+              "igraph","reshape","grid","tidyverse","shinyjs","shinyBS","stm")
 
 lapply(packages,library,character.only = TRUE)
 source('directoryInput.R')
@@ -448,41 +448,42 @@ server <- function(input, output, session) {
       visInteraction(navigationButtons = T)
   })
   
+  # terms <- reactive({
+  #   freq <- data.frame(v$probterms)
+  #   temp <- as.integer(input$topic.network_selected)
+  #   data.frame(word = rownames(v$probterms), freq = freq[,temp])
+  # })
+  
   terms <- reactive({
+    validate(
+      need(input$topic.network_selected != "", "Please select a topic")
+    )
     freq <- data.frame(v$probterms)
     temp <- as.integer(input$topic.network_selected)
     data.frame(word = rownames(v$probterms), freq = freq[,temp])
   })
   
   docs <- reactive({
+    validate(
+      need(input$topic.network_selected != "", "Please select a topic")
+    )
     freq <- data.frame(v$probdocs)
     temp <- as.integer(input$topic.network_selected)
     data.frame(docname = rownames(v$probdocs), freq = freq[,temp], rowNum = v$out$meta$rowNum)
   })
-  
-  # Make the wordcloud drawing predictable during a session
-  wordcloud_rep <- repeatable(wordcloud)
 
   output$topic.wordcloud <- renderPlot({
     w <- terms()
-
-    try <- try(wordcloud_rep(w$word,
-                             exp(w$freq),
-                             scale=c(4,0.5),
-                             max.words=100,
-                             random.order = F,
-                             rot.per=0.1,
-                             colors=brewer.pal(8, "Dark2")))
-    if("try-error" %in% class(try)){print("Choose a topic from the network.")
-    }else{wordcloud_rep(w$word,
-                        exp(w$freq),
-                        scale=c(4,0.5),
-                        max.words=50,
-                        random.order = F,
-                        rot.per=0.1,
-                        colors=brewer.pal(8, "Dark2"))}
+    
+    w %>%
+      mutate(word = as.character(word)) %>%
+      mutate(freq = round(exp(freq)*100)) %>%
+      ggplot(aes(label = word, size = freq)) +
+      geom_text_wordcloud() +
+      scale_size_area(max_size = 24) +
+      theme_minimal()
     })
-
+  
   
   # expert table
   Docs <- reactive({
