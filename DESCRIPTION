@@ -1,7 +1,7 @@
 Package: topicApp 
 Title: A Shiny App to run Topic Models
 Version: 0.1.0
-Authors@R: person("Ryan", "Wesslen", email =  "rwesslen@gmail.com", role = c("aut", "cre"))
+Authors@R: person("Ryan", "Wesslen", email =  "rwesslen@charlotte.edu", role = c("aut", "cre"))
 Description: This package is a Shiny App to analyze text data (from flat file) using topic models (LDA).
 Depends: R (>= 3.2.0)
 License: GPL-2 
